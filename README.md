@@ -1,1 +1,1 @@
-# This project is a partner based project in DAT 301 (Exploring Data in R and Python). The project includes a detailed analysis of a Spotify dataset, analyzing different factors and determining if these factors impact a songs chart position. 
+# This project is a partner based project in DAT 301 (Exploring Data in R and Python). The project includes a detailed analysis of a Spotify Charts dataset, analyzing different factors and determining if these factors impact a songs chart position. This project uses RMarkdown to analyze data and create visualizations. 
