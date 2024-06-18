@@ -1,0 +1,275 @@
+---
+title: "Spotify Chart Data Analysis"
+author: "Ezekiel Suarez, Tanu Siddappa"
+date: "2023-10-22"
+output: ioslides_presentation
+---
+
+```{=html}
+<style type="text/css">
+body p, div, h1, h2, h3, h4, h5 {
+color: black;
+font-family: Modern Computer Roman;
+}
+ul li{
+ font-size:18px;
+}
+slides > slide.title-slide hgroup h1 {
+color: #8C1D40; <!--the maroon color-->
+}
+h2 {
+color: #8C1D40; <!-- the maroon color-->
+}
+slides > slide {
+background: linear-gradient(#ffffff, #ffffff 85%, #ffffff);
+background-color: white;
+}
+</style>
+```
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(ggplot2)
+library(plotly)
+library(dplyr)
+library(knitr)
+library(stringr)
+Spotify <- read.csv("top10s.csv")
+##Spotify = read.csv("top10s.csv",sep=";",header=TRUE)
+
+```
+
+## Introduction
+
+Music is a popular form of entertainment across all groups of people. In the last decade, there has been an increase in the number of genres of music and the overall composition of a "popular" song has changed. The introduction of streaming platforms has also changed how we consume music, the most popular platform being Spotify with over 500 million active users. Streaming platforms have made it easier to share music we like with our friends, create our own personalized playlists, and discover new music or genres we may enjoy.
+
+Top Spotify Songs Dataset: <https://www.kaggle.com/datasets/leonardopena/top-spotify-songs-from-20102019-by-year/data>
+
+## Introduction (continued)
+
+In this analysis, we will be focusing on Spotify's Top Songs chart, and analyze factors in each song that may contribute to a songs probability to make the charts. The data contains the top 50 songs from each year, from the years 2010-2019. This data set provides information on release year, bpm, danceability, energy, speechiness, and acousticness which can all help in determining factors that may influence a song's popularity. We will be attempting to find correlation between these factors and the charts. We are also interested in how the overall trend of these factors has shifted through the years. Some question we are looking to answer include:
+
+-   How does the length of a song impact a songs popularity?
+-   What are the most common genres on the charts?
+-   Do more lyrical or more instrumental songs perform better on the Top Songs charts?
+-   Which artists are most commonly seen on Top Songs charts?
+-   How has the mood of songs on the Top Songs charts shifted through the decade?
+
+## Data Description
+
+There are several variables that the datasets explores about each song. These include:
+
+-   bpm (beats per minute): The tempo of a song
+-   nrgy (Energy): The energy level of a song (higher value is more energetic)
+-   dnce (Danceablility): How danceable a song is (higher value is more dancable)
+-   dB (Loudness): How loud a song is (higher value is more loud)
+-   live (Liveness): How likely a song is to be a live recording (higher value is more likely)
+-   val (Valence): Positivity of a song (higher value is more positive)
+-   dur (Duration): Length of a song in seconds
+-   acous (Acousticness): Amount of music with solely instruments (higher value is more instrumental music)
+-   spch (Speechiness): Amount of spoken words in a song (higher value has more spoken words)
+-   pop (Popularity): Popularity score of a song (higher value is more popular)
+
+## Average Danceability vs Beats Per Minute by Year
+
+<div class="columns-2">
+
+```{r byFormat, echo=FALSE, message=FALSE, warning=FALSE, fig.width=3.25,fig.height=2}
+
+avgDance<- Spotify %>%
+  group_by(year) %>%
+  summarize(average = mean(dnce, na.rm = TRUE)) 
+
+ggplot(data = avgDance, aes(x = year, y = average)) +
+  geom_point(size=3) +
+  geom_line()+
+  labs(title = "Average Danceability Score/Year",
+       x = "Year",
+       y = "Average Danceability") +
+  scale_x_continuous(breaks = seq(2010, 2019, by = 2))
+
+avgBpm<- Spotify %>%
+  group_by(year) %>%
+  summarize(average = mean(bpm, na.rm = TRUE)) 
+
+ ggplot(data = avgBpm, aes(x = year, y = average)) +
+  geom_point(size=3) +
+  geom_line()+
+  labs(title = "Average BPM Score/Year",
+       x = "Year",
+       y = "Average BPM") +
+  scale_x_continuous(breaks = seq(2010, 2019, by = 2))
+  
+```
+
+While the danceability of songs on the charts has been increasing since 2016, the average beats per minute has been decreasing overall. This is surprising, because we expect that songs with a faster tempo are more commonly danced to. This shows that over the decade, songs on the charts were more "danceable" even if they had a slower tempo than previous years.
+
+## Top 15 Most Popular Genres
+
+```{r, echo=FALSE, fig.width=8,fig.height=4}
+genres <- Spotify %>%
+  group_by(top.genre) %>%
+  summarize(nums = n()) %>%
+  slice_max(order_by = nums, n = 15) 
+
+  ggplot(data = genres, aes(x = reorder(top.genre, -nums), y = nums)) +
+  coord_flip() +
+  geom_text(aes(label = nums), hjust = 0) +
+  geom_bar(stat = "identity", fill="red") +
+  labs(x = "Genre", y = "Count")
+
+
+```
+
+Out of the top 15 most popular genres, the top 4 are all forms of pop music. This is not surprising, since most of the music played on radios is pop music, contributing to it having prevalence on the charts.
+
+## Average Popularity Score of Top Genres
+```{r,echo=FALSE, fig.width=8,fig.height=3}
+genre <- Spotify %>%
+  group_by(`top.genre`) %>%
+  summarize(nums = n()) %>%
+  slice_max(order_by = nums, n = 15) %>%
+  pull(`top.genre`)
+
+averagePop <- Spotify %>%
+  filter(`top.genre` %in% genre) %>%
+  group_by(`top.genre`) %>%
+  summarize(average = mean(pop, na.rm = TRUE))
+
+ggplot(averagePop, aes(x = reorder(`top.genre`, -average), y = average)) +
+  geom_bar(stat = "identity", fill="pink") +
+  labs(x = "Genre", y = "Popularity") +
+  theme(axis.text.x = element_text(angle = 90))
+
+```
+One interesting thing to note in the average popularity score is that popularity is not necessarily corelated to the top genres. Despite having the most dance pop songs on the charts, dance pop is only 11th in popularity score. EDM songs have the highest average popularity score, which could suggest that while less EDM songs make it on the charts overall, the ones that do are very successful.
+
+## Song Duration and Popularity
+
+```{r, message=FALSE, echo=FALSE, fig.width=8,fig.height=3.5}
+ggplot(data = Spotify, aes(x = dur, y = pop)) +
+  geom_point(alpha = 0.6) + 
+  labs(
+    title = "Correlation between Song Duration and Popularity",
+    x = "Duration in Seconds",
+    y = "Popularity")
+```
+There is a cluster of points near the upper-left corner of the plot, which shows that popular songs tend to be shorter in duration (with the exception of a few outliers). This could be because of shorter songs have a better chance to go "viral" on social media. The ideal range of a song to maximize popularity seems to be around 180-210 seconds.
+
+## Popularity of songs based on Liveness
+```{r,echo=FALSE, fig.width=8,fig.height=4}
+Spotify$liveBinary = ifelse(Spotify$live > 37, "Live", "Not Live")
+boxplot(pop ~ liveBinary, data = Spotify,
+        xlab="Popularity",
+        ylab="Liveness",
+        horizontal=TRUE)
+```
+For this plot, songs with a live score of 37 or more are considered "live" songs. Songs that are considered live tend to be less average than non-live songs. Regularly recorded songs also have more spread in their popularity, and have a much larger maximum popularity score.
+
+## Significance of BPM in Popular Music
+
+```{r, echo=FALSE}
+ggplot(Spotify, aes(x=bpm)) + geom_freqpoly(bins=50)+labs(x="BPM", y="Frequency")
+```
+
+Peaks are seen around the 100, 120, and 130 bpm marks, meaning a relatively medium-high pace song is more likely to make it on the charts.
+
+## Song Energy Over Time
+
+```{r, echo=FALSE}
+
+nrgyVsYear = Spotify %>%
+  group_by(year) %>%
+  summarise(Average = mean(nrgy))
+
+ggplot(nrgyVsYear, aes(x=year,y=Average)) + geom_bar(stat = "identity", fill="green2") + labs(x="Year")+
+scale_x_continuous(breaks = seq(2010, 2019, by = 1))
+
+```
+
+There is a slow, but constant decrease in "energy" over time, signifying change in the majority of listeners' and artists' moods.
+
+## Acousticness Over Time
+
+```{r, echo=FALSE}
+acousVsYear = Spotify %>%
+  group_by(year) %>%
+  summarise(Average = mean(acous))
+
+ggplot(acousVsYear, aes(x=year,y=Average)) + geom_bar(stat = "identity", fill="steelblue2") + labs(x="Year")+
+scale_x_continuous(breaks = seq(2010, 2019, by = 1))
+```
+Acoustic sound has had a constant dramatic shift. It seems overall it grew in popularity over past years, but trends here really depend on the real world.
+
+## Valence Over Time
+
+```{r, echo=FALSE}
+valVsYear = Spotify %>%
+  group_by(year) %>%
+  summarise(Average = mean(val))
+
+ggplot(valVsYear, aes(x=year,y=Average)) + geom_bar(stat = "identity", fill="goldenrod1") + labs(x="Year")+
+scale_x_continuous(breaks = seq(2010, 2019, by = 1))
+```
+
+Surprisingly, actual emotional content of songs have remained fairly constant despite the decrease in energy.
+
+## BPM vs Valence
+```{r, echo=FALSE}
+plot_ly(Spotify,x=~bpm,y=~val, type = "scatter",mode = "markers") %>% layout(xaxis=list(title="BPM"), yaxis=list(title="Valence"))
+```
+
+BPM and valence have no correlation and it cannot be said that to have a popular happy song, it has to be fast or to have a popular sad song, it has to be slow.
+
+## Includes Featured Artists
+```{r, echo=FALSE}
+genre <- Spotify %>%
+  group_by(`top.genre`) %>%
+  summarize(nums = n()) %>%
+  slice_max(order_by = nums, n = 15) %>%
+  pull(`top.genre`)
+
+averagePop <- Spotify %>%
+  filter(`top.genre` %in% genre, str_detect(title, "feat")) %>%
+  group_by(`top.genre`) %>%
+  summarize(average = n())
+
+ggplot(averagePop, aes(x = reorder(`top.genre`, -average), y = average)) +
+  geom_bar(stat="identity",fill="mediumorchid1") +
+  labs(x = "Genre", y = "Features") +
+  theme(axis.text.x = element_text(angle = 90))
+```
+Under 15% of songs have a featured artist, meaning unless the featured artist is more popular than the main artist, there is not much added popularity on a song based on its feature.
+
+## Dance Pop[ularity]
+$\tiny \displaystyle {dance\,pop \over total\,songs} =$
+```{r, echo=FALSE}
+feats = count(Spotify %>% filter(str_detect(`top.genre`, "dance pop")))
+songs = nrow(Spotify)
+div = feats/songs
+cat(paste(div*100, "%"))
+```
+
+It seems to be a trend for dance pop to make it to the charts more so than any other genre. Despite hearing rap on the radio all the time, "hip pop", "atl hip hop", and "hip hop" only made it to positions 14, 15, and 18 respectively meaning rap has become more normal in the pop genre and is no longer its own thing it started out as.
+
+```{r, echo=FALSE}
+Spotify %>% count(`top.genre`) %>% arrange(desc(n)) %>% head(5)
+```
+
+## Conclusion
+
+Music is everchanging and people often are as well. A popular song is often easy to listen to, and will have some amount of familiarity mixed with a bit of fresh new noise. We can gather from the last decade that year by year, not much drastically will change, but depending on current events, certain moods or tempos may be more gravitated toward.
+
+In the last decade, there was a decrease in the average BPM of songs on the charts, meaning that more slow-paced songs were on the charts. The most popular songs also tended to be shorter in duration. Pop was prevalent on the charts throughout the decade, and was the most popular genre on the charts by far. Live songs also tended to have less spread in their popularity than non-live songs. This could be because of the studio finish of live songs, and their radio presence. From all of these plots, we can predict that shorter pop songs that are medium paced will be successful on Spotify's charts. 
+
+## Code
+The code used for this project can be seen here:
+
+<div class="columns-2">
+```{r, echo=FALSE, fig.width=4,fig.height=8}
+include_graphics("Capture1.png")
+```
+<br><br>
+```{r, echo=FALSE, fig.width=4,fig.height=8}
+include_graphics("Capture2.png")
+```
